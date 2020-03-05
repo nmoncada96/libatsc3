@@ -55,14 +55,18 @@ LOCAL_SRC_FILES += \
 
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/src/main/jni
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../src/
-
-
+LOCAL_C_INCLUDES += C:/Users/john/Source/Repos/jjustman/libatsc3/android/sample_app_no_phy/Android-RZR-SDK/include
 
 LOCAL_CFLAGS += -g -fpack-struct=8 -fPIC  \
                 -D__DISABLE_LIBPCAP__ -D__DISABLE_ISOBMFF_LINKAGE__ -D__DISABLE_NCURSES__ \
                 -D__MOCK_PCAP_REPLAY__ -D__LIBATSC3_ANDROID__
-
-LOCAL_LDLIBS := -ldl -llog -landroid -lz
+                
+LOCAL_LDLIBS := -ldl -llog -landroid -lz \
+    -lC:/Users/john/Source/Repos/jjustman/libatsc3/android/sample_app_no_phy/Android-RZR-SDK/lib/android/armeabi-v7a/libredzone_api.so \
+    -lC:/Users/john/Source/Repos/jjustman/libatsc3/android/sample_app_no_phy/Android-RZR-SDK/lib/android/armeabi-v7a/libredzone_c_api.so \
+    -lC:/Users/john/Source/Repos/jjustman/libatsc3/android/sample_app_no_phy/Android-RZR-SDK/lib/android/armeabi-v7a/libRedZoneATSC3Parsers.so \
+    -lC:/Users/john/Source/Repos/jjustman/libatsc3/android/sample_app_no_phy/Android-RZR-SDK/lib/android/armeabi-v7a/libusb1.0.so
+ 
 
 include $(BUILD_SHARED_LIBRARY)
 

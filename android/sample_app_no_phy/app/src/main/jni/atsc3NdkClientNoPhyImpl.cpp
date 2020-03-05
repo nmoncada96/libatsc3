@@ -8,6 +8,12 @@
 
 #include "atsc3NdkClientNoPhyImpl.h"
 
+#include "props_api.h"
+#include "redzone_c_api.h"
+
+#include "basebandparser.h"
+#include "alpparser.h"
+
 extern atsc3NdkClientNoPhyImpl apiImpl;
 
 bool atsc3NdkClientNoPhyImpl::captureThreadShouldRun = false;
@@ -27,15 +33,43 @@ int atsc3NdkClientNoPhyImpl::Open(int fd_, int bus_, int addr_) {
     fd = fd_;
     bus = bus_;
     addr = addr_;
+    int     rval;
+    int     verbosity = 9;
+    
+    printf( "atsc3NdkClientNoPhyImpl Entered\n");
+#if 1
+	if (RedZoneCaptureOpen(&hRedZoneCapture))
+	{
+		printf("RedZoneCaptureOpen: Failed to initialize RedZoneCapture\n");
+		rval = 1;
+		goto out;
+	}
+    rval = RedZoneCaptureSetProp(hRedZoneCapture, RedZoneLoggingVerboseMode, &verbosity, sizeof(verbosity));
+    printf("RedZoneCaptureSetProp: returned %d\n", rval);
+    if (rval = RedZoneCaptureInitSysDevice(hRedZoneCapture, fd ))
+    {
+        printf("RedZoneCaptureInitSysDevice: Failed to initialize RedZoneCapture %d\n", rval);
+        rval = 1;
+        goto out;
+    }
+#endif
+    printf( "atsc3NdkClientNoPhyImpl:  success\n");
+    //PropUtilsSetVerboseLoggingLevel(parserCallbackData.hRedZoneCapture, verbose);
 
     return 0;
+out:
+    return rval;
 }
 
 int atsc3NdkClientNoPhyImpl::Tune(int freqKhz, int plpId) {
 
+    int rval;
     vector<int> myPlps;
     myPlps.push_back(plpId);
 
+    printf( "atsc3NdkClientNoPhyImpl::tune freq = %d plp = %d\n", freqKhz, plpId);
+    rval = RedZoneCaptureSetProp(hRedZoneCapture, RedZoneFrequencyKHzProp, &freqKhz, sizeof(freqKhz));
+    printf("tune returned %d\n", rval);
     return TuneMultiplePLP(freqKhz, myPlps);
 }
 
@@ -70,7 +104,7 @@ int atsc3NdkClientNoPhyImpl::TuneMultiplePLP(int freqKhz, vector<int> plpIds) {
 
 
         cThread_ret = pthread_create(&cThreadID, NULL, (THREADFUNCPTR) &atsc3NdkClientNoPhyImpl::CaptureThread, NULL);
-        printf("created CaptureThread, cThreadID is: %d", cThreadID);
+        printf("created CaptureThread, cThreadID is: %d", (int)cThreadID);
         if (cThread_ret != 0) {
             atsc3NdkClientNoPhyImpl::captureThreadShouldRun = false;
             printf("Capture Thread launched unsuccessfully, cThread_ret: %d", cThread_ret);
@@ -94,7 +128,7 @@ int atsc3NdkClientNoPhyImpl::TuneMultiplePLP(int freqKhz, vector<int> plpIds) {
             return -1;
         }
     } else {
-        printf("using existing ProcessThread, pThread is: %d", pThreadID);
+        printf("using existing ProcessThread, pThread is: %d", (int)pThreadID);
     }
 
     if (!tsThreadID) {
@@ -108,7 +142,7 @@ int atsc3NdkClientNoPhyImpl::TuneMultiplePLP(int freqKhz, vector<int> plpIds) {
             return 0;
         }
     } else {
-        printf("using existing TunerStatusThread, sThread is: %d", tsThreadID);
+        printf("using existing TunerStatusThread, sThread is: %d", (int)tsThreadID);
     }
 
     atsc3NdkClientNoPhyImpl::atsc3NdkClient_ref->LogMsgF("TuneMultiplePLP: completed: capture: %ul, process: %ul, tunerStatus: %ul", cThreadID, pThreadID, tsThreadID);

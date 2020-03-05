@@ -1124,7 +1124,7 @@ Java_org_ngbp_libatsc3_sampleapp_atsc3NdkClient_ApiOpen(JNIEnv *env, jobject ins
     int addr = key & 0xFF;
 
     printf("Java_org_ngbp_libatsc3_sampleapp_atsc3NdkClient_ApiOpen: invoking open with fd: %d, key: %d, bus: %d, addr: %d",
-            fd, key, bus, addr);
+           (int)fd, (int)key, bus, addr);
 
     api.Open(fd, bus, addr);
 

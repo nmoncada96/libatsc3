@@ -12,8 +12,8 @@
 
 using namespace std;
 
-#ifndef LIBATSC3_ATSC3NDKCLIENTNOPHYIMPL_H
-#define LIBATSC3_ATSC3NDKCLIENTNOPHYIMPL_H
+#ifndef LIBATSC3_ATSC3NDKCLIENTAIRWAVZRZR_H
+#define LIBATSC3_ATSC3NDKCLIENTAIRWAVZRZR_H
 
 #include <atsc3_utils.h>
 
@@ -24,7 +24,7 @@ using namespace std;
 
 typedef void * (*THREADFUNCPTR)(void *);
 
-class atsc3NdkClientNoPhyImpl {
+class atsc3NdkClientAirwavzRZR {
     public:
         void Init(atsc3NdkClient* ref_);
 
@@ -35,7 +35,8 @@ class atsc3NdkClientNoPhyImpl {
 
         void processTLVFromCallback();
 
-        RedZoneCaptureHandle_t hRedZoneCapture;
+
+
 
         //thread state management flags, TODO: remove from static to instance binding
         static bool        captureThreadShouldRun;

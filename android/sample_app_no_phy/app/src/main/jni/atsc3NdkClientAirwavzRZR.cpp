@@ -6,7 +6,7 @@
 #include <atsc3_phy_mmt_player_bridge.h>
 #include "atsc3NdkClient.h"
 
-#include "atsc3NdkClientNoPhyImpl.h"
+#include "atsc3NdkClientAirwavzRZR.h"
 
 #include "props_api.h"
 #include "redzone_c_api.h"
@@ -14,46 +14,51 @@
 #include "basebandparser.h"
 #include "alpparser.h"
 
-extern atsc3NdkClientNoPhyImpl apiImpl;
+extern atsc3NdkClientAirwavzRZR apiImpl;
 
-bool atsc3NdkClientNoPhyImpl::captureThreadShouldRun = false;
-bool atsc3NdkClientNoPhyImpl::processThreadShouldRun = false;
-bool atsc3NdkClientNoPhyImpl::tunerStatusThreadShouldRun = false;
-bool atsc3NdkClientNoPhyImpl::tunerStatusThreadShouldPollTunerStatus = false;
+bool atsc3NdkClientAirwavzRZR::captureThreadShouldRun = false;
+bool atsc3NdkClientAirwavzRZR::processThreadShouldRun = false;
+bool atsc3NdkClientAirwavzRZR::tunerStatusThreadShouldRun = false;
+bool atsc3NdkClientAirwavzRZR::tunerStatusThreadShouldPollTunerStatus = false;
 
-atsc3NdkClient* atsc3NdkClientNoPhyImpl::atsc3NdkClient_ref = NULL;
+RedZoneCaptureHandle_t hRedZoneCapture;
+
+atsc3NdkClient* atsc3NdkClientAirwavzRZR::atsc3NdkClient_ref = NULL;
 
 //NDK JNI main dispatcher reference
-void atsc3NdkClientNoPhyImpl::Init(atsc3NdkClient* ref_) {
-    atsc3NdkClientNoPhyImpl::atsc3NdkClient_ref = ref_;
+void atsc3NdkClientAirwavzRZR::Init(atsc3NdkClient* ref_) {
+    atsc3NdkClientAirwavzRZR::atsc3NdkClient_ref = ref_;
 
 }
 
-int atsc3NdkClientNoPhyImpl::Open(int fd_, int bus_, int addr_) {
+int atsc3NdkClientAirwavzRZR::Open(int fd_, int bus_, int addr_) {
     fd = fd_;
     bus = bus_;
     addr = addr_;
     int     rval;
     int     verbosity = 9;
     
-    printf( "atsc3NdkClientNoPhyImpl Entered\n");
+    printf( "atsc3NdkClientAirwavzRZR Entered\n");
 #if 1
-	if (RedZoneCaptureOpen(&hRedZoneCapture))
-	{
+	if (RedZoneCaptureOpen(&hRedZoneCapture)) {
 		printf("RedZoneCaptureOpen: Failed to initialize RedZoneCapture\n");
 		rval = 1;
-		goto out;
+		return rval;
+		//goto out;
 	}
+
     rval = RedZoneCaptureSetProp(hRedZoneCapture, RedZoneLoggingVerboseMode, &verbosity, sizeof(verbosity));
     printf("RedZoneCaptureSetProp: returned %d\n", rval);
-    if (rval = RedZoneCaptureInitSysDevice(hRedZoneCapture, fd ))
+    rval = RedZoneCaptureInitSysDevice(hRedZoneCapture, fd );
+    if (rval != RZR_SUCCESS)
     {
         printf("RedZoneCaptureInitSysDevice: Failed to initialize RedZoneCapture %d\n", rval);
         rval = 1;
-        goto out;
+        return rval;
+        //goto out;
     }
 #endif
-    printf( "atsc3NdkClientNoPhyImpl:  success\n");
+    printf( "atsc3NdkClientAirwavzRZR:  success\n");
     //PropUtilsSetVerboseLoggingLevel(parserCallbackData.hRedZoneCapture, verbose);
 
     return 0;
@@ -61,16 +66,12 @@ out:
     return rval;
 }
 
-int atsc3NdkClientNoPhyImpl::Tune(int freqKhz, int plpId) {
+int atsc3NdkClientAirwavzRZR::Tune(int freqKhz, int plpId) {
 
-    int rval;
     vector<int> myPlps;
     myPlps.push_back(plpId);
 
-    printf( "atsc3NdkClientNoPhyImpl::tune freq = %d plp = %d\n", freqKhz, plpId);
-    rval = RedZoneCaptureSetProp(hRedZoneCapture, RedZoneFrequencyKHzProp, &freqKhz, sizeof(freqKhz));
-    printf("tune returned %d\n", rval);
-    return TuneMultiplePLP(freqKhz, myPlps);
+     return TuneMultiplePLP(freqKhz, myPlps);
 }
 
 /**
@@ -79,7 +80,9 @@ int atsc3NdkClientNoPhyImpl::Tune(int freqKhz, int plpId) {
  * @param plpIds
  * @return
  */
-int atsc3NdkClientNoPhyImpl::TuneMultiplePLP(int freqKhz, vector<int> plpIds) {
+int atsc3NdkClientAirwavzRZR::TuneMultiplePLP(int freqKhz, vector<int> plpIds) {
+
+    int rval;
 
     int cThread_ret = 0;
     int pThread_ret = 0;
@@ -100,13 +103,50 @@ int atsc3NdkClientNoPhyImpl::TuneMultiplePLP(int freqKhz, vector<int> plpIds) {
 //
 //        printf("creating capture thread, cb buffer size: %d, tlv_block_size: %d",
 //               CB_SIZE, BUFFER_SIZE);
-        atsc3NdkClientNoPhyImpl::captureThreadShouldRun = true;
+
+        printf( "atsc3NdkClientAirwavzRZR::TuneMultiplePLP freq = %d\n", freqKhz);
+
+        rval = RedZoneCaptureSetProp(hRedZoneCapture, RedZoneFrequencyKHzProp, &freqKhz, sizeof(freqKhz));
+        printf("tune returned %d\n", rval);
+
+        RedZonePLPSet plpset = {255, 255, 255, 255};
+
+        int nplp = plpIds.size();
+
+        if (nplp > 4) {
+            printf("Request %d PLPs only the first 4 will be tuned\n", nplp);
+            nplp = 4;
+        }
+        switch (nplp) {
+
+        case 0:
+            printf("No PLPs specified\n");
+            break;
+        case 4:
+            plpset.plp3_id = plpIds[3];
+            /* fall through */
+        case 3:
+            plpset.plp2_id = plpIds[2];
+            /* fall through */
+        case 2:
+            plpset.plp1_id = plpIds[1];
+            /* fall through */
+        case 1:
+            plpset.plp0_id = plpIds[0];
+            /* fall through */
+            break;
+        }
+        if (nplp >0) {
+            rval = RedZoneCaptureSetProp(hRedZoneCapture, RedZonePLPSelectionProp, &plpset, sizeof(plpset));
+            printf("Set PLP Selection returned %d\n", rval);
+        }
+        atsc3NdkClientAirwavzRZR::captureThreadShouldRun = true;
 
 
-        cThread_ret = pthread_create(&cThreadID, NULL, (THREADFUNCPTR) &atsc3NdkClientNoPhyImpl::CaptureThread, NULL);
+        cThread_ret = pthread_create(&cThreadID, NULL, (THREADFUNCPTR) &atsc3NdkClientAirwavzRZR::CaptureThread, NULL);
         printf("created CaptureThread, cThreadID is: %d", (int)cThreadID);
         if (cThread_ret != 0) {
-            atsc3NdkClientNoPhyImpl::captureThreadShouldRun = false;
+            atsc3NdkClientAirwavzRZR::captureThreadShouldRun = false;
             printf("Capture Thread launched unsuccessfully, cThread_ret: %d", cThread_ret);
             return 0;
         }
@@ -115,29 +155,30 @@ int atsc3NdkClientNoPhyImpl::TuneMultiplePLP(int freqKhz, vector<int> plpIds) {
 
     }
 
-
+#if 0
     //create our ProcessThread - handles enqueued TLV payload from CaptureThread
     if (!pThreadID) {
 
-        atsc3NdkClientNoPhyImpl::processThreadShouldRun = true;
+        atsc3NdkClientAirwavzRZR::processThreadShouldRun = true;
 
-        pThread_ret = pthread_create(&pThreadID, NULL, (THREADFUNCPTR) &atsc3NdkClientNoPhyImpl::ProcessThread, NULL);
+        pThread_ret = pthread_create(&pThreadID, NULL, (THREADFUNCPTR) &atsc3NdkClientAirwavzRZR::ProcessThread, NULL);
         if (pThread_ret != 0) {
-            atsc3NdkClientNoPhyImpl::processThreadShouldRun = 0;
+            atsc3NdkClientAirwavzRZR::processThreadShouldRun = 0;
             printf("Process Thread launched unsuccessfully, ret: %d", pThread_ret);
             return -1;
         }
     } else {
         printf("using existing ProcessThread, pThread is: %d", (int)pThreadID);
     }
+#endif
 
     if (!tsThreadID) {
 
-        atsc3NdkClientNoPhyImpl::tunerStatusThreadShouldRun = true;
+        atsc3NdkClientAirwavzRZR::tunerStatusThreadShouldRun = true;
 
-        sThread_ret = pthread_create(&tsThreadID, NULL, (THREADFUNCPTR) &atsc3NdkClientNoPhyImpl::TunerStatusThread, NULL);
+        sThread_ret = pthread_create(&tsThreadID, NULL, (THREADFUNCPTR) &atsc3NdkClientAirwavzRZR::TunerStatusThread, NULL);
         if (sThread_ret != 0) {
-            atsc3NdkClientNoPhyImpl::tunerStatusThreadShouldRun = false;
+            atsc3NdkClientAirwavzRZR::tunerStatusThreadShouldRun = false;
             printf("Status Thread launched unsuccessfully, ret: %d", sThread_ret);
             return 0;
         }
@@ -145,16 +186,16 @@ int atsc3NdkClientNoPhyImpl::TuneMultiplePLP(int freqKhz, vector<int> plpIds) {
         printf("using existing TunerStatusThread, sThread is: %d", (int)tsThreadID);
     }
 
-    atsc3NdkClientNoPhyImpl::atsc3NdkClient_ref->LogMsgF("TuneMultiplePLP: completed: capture: %ul, process: %ul, tunerStatus: %ul", cThreadID, pThreadID, tsThreadID);
+    atsc3NdkClientAirwavzRZR::atsc3NdkClient_ref->LogMsgF("TuneMultiplePLP: completed: capture: %ul, process: %ul, tunerStatus: %ul", cThreadID, pThreadID, tsThreadID);
 
     return 0;
 }
 
 
 
-void atsc3NdkClientNoPhyImpl::processTLVFromCallback()
+void atsc3NdkClientAirwavzRZR::processTLVFromCallback()
 {
-//    int bytesRead = CircularBufferPop(atsc3NdkClientNoPhyImpl::cb, BUFFER_SIZE, (char*)&processDataCircularBufferForCallback);
+//    int bytesRead = CircularBufferPop(atsc3NdkClientAirwavzRZR::cb, BUFFER_SIZE, (char*)&processDataCircularBufferForCallback);
 //    if(!atsc3_sl_tlv_block) {
 //        printf("ERROR: atsc3NdkClientSlImpl::processTLVFromCallback - atsc3_sl_tlv_block is NULL!");
 //        return;
@@ -238,29 +279,29 @@ void atsc3NdkClientNoPhyImpl::processTLVFromCallback()
 }
 
 
-void atsc3NdkClientNoPhyImpl::RxDataCallback(unsigned char *data, long len)
+void atsc3NdkClientAirwavzRZR::RxDataCallback(unsigned char *data, long len)
 {
-    //printf("atsc3NdkClientNoPhyImpl::RxDataCallback: pushing data: %p, len: %d", data, len);
+    //printf("atsc3NdkClientAirwavzRZR::RxDataCallback: pushing data: %p, len: %d", data, len);
     //CircularBufferPush(atsc3NdkClientSlImpl::cb, (char *)data, len);
 }
 
-void* atsc3NdkClientNoPhyImpl::CaptureThread(void*)
+void* atsc3NdkClientAirwavzRZR::CaptureThread(void*)
 {
-    atsc3NdkClientNoPhyImpl::atsc3NdkClient_ref->pinFromRxCaptureThread();
+    atsc3NdkClientAirwavzRZR::atsc3NdkClient_ref->pinFromRxCaptureThread();
 
-    //...((RxDataCB)&atsc3NdkClientNoPhyImpl::RxDataCallback);
+    //...((RxDataCB)&atsc3NdkClientAirwavzRZR::RxDataCallback);
     return 0;
 }
 
 
 //Process Thread Impl
-void* atsc3NdkClientNoPhyImpl::ProcessThread(void*)
+void* atsc3NdkClientAirwavzRZR::ProcessThread(void*)
 {
     apiImpl.resetProcessThreadStatistics();
 
-    atsc3NdkClientNoPhyImpl::atsc3NdkClient_ref->pinFromRxProcessingThread();
+    atsc3NdkClientAirwavzRZR::atsc3NdkClient_ref->pinFromRxProcessingThread();
 
-    while (atsc3NdkClientNoPhyImpl::processThreadShouldRun)
+    while (atsc3NdkClientAirwavzRZR::processThreadShouldRun)
     {
         //printf("atsc3NdkClientSlImpl::ProcessThread: getDataSize is: %d", CircularBufferGetDataSize(cb));
 
@@ -274,17 +315,18 @@ void* atsc3NdkClientNoPhyImpl::ProcessThread(void*)
     return 0;
 }
 
-void* atsc3NdkClientNoPhyImpl::TunerStatusThread(void*)
+void* atsc3NdkClientAirwavzRZR::TunerStatusThread(void*)
 {
+    int rval;
 
-    atsc3NdkClientNoPhyImpl::atsc3NdkClient_ref->pinFromRxStatusThread();
+    atsc3NdkClientAirwavzRZR::atsc3NdkClient_ref->pinFromRxStatusThread();
 
 
-    while(atsc3NdkClientNoPhyImpl::tunerStatusThreadShouldRun) {
-//
+    while(atsc3NdkClientAirwavzRZR::tunerStatusThreadShouldRun) {
+
 //        //only actively poll the tuner status if the RF status window is visible
-//        if(!atsc3NdkClientNoPhyImpl::tunerStatusThreadShouldPollTunerStatus) {
-//            usleep(1000000);
+//        if(!atsc3NdkClientAirwavzRZR::tunerStatusThreadShouldPollTunerStatus) {
+            usleep(2000000);
 //            continue;
 //        }
 //
@@ -305,12 +347,24 @@ void* atsc3NdkClientNoPhyImpl::TunerStatusThread(void*)
 //
 //        snr = (float)perfDiag.GlobalSnrLinearScale / 16384;
 //        snr = 10000.0 * log10(snr); //10
+
+          unsigned char lock;
+          int   SNR, RSSi;
+
+          rval = RedZoneCaptureGetProp( hRedZoneCapture, RedZoneMasterLockProp, &lock, sizeof(lock));
+          printf("get Lock %d status %d\n", SNR, rval);
+          rval = RedZoneCaptureGetProp( hRedZoneCapture, RedZoneSNRProp, &SNR, sizeof(SNR));
+          printf("get SNR %d status %d\n", SNR, rval);
+          rval = RedZoneCaptureGetProp( hRedZoneCapture, RedZoneRSSIProp, &RSSi, sizeof(RSSi));
+          printf("get RSSi %d status %d\n", RSSi, rval);
+
+
 //
 //        ber_l1b = (float)perfDiag.NumBitErrL1b / perfDiag.NumFecBitsL1b; // //aBerPreLdpcE7,
 //        ber_l1d = (float)perfDiag.NumBitErrL1d / perfDiag.NumFecBitsL1d;//aBerPreBchE9,
 //        ber_plp0 = (float)perfDiag.NumBitErrPlp0 / perfDiag.NumFecBitsPlp0; //aFerPostBchE6,
 //
-//        printf("atsc3NdkClientNoPhyImpl::TunerStatusThread: tunerInfo.status: %d, tunerInfo.signalStrength: %f, cpuStatus: %s, demodLockStatus: %d, globalSnr: %f",
+//        printf("atsc3NdkClientAirwavzRZR::TunerStatusThread: tunerInfo.status: %d, tunerInfo.signalStrength: %f, cpuStatus: %s, demodLockStatus: %d, globalSnr: %f",
 //                tunerInfo.status,
 //                tunerInfo.signalStrength,
 //                (cpuStatus == 0xFFFFFFFF) ? "RUNNING" : "HALTED",
@@ -334,14 +388,14 @@ void* atsc3NdkClientNoPhyImpl::TunerStatusThread(void*)
 //                llsPlpInfo & 0x01 == 0x01,
 //                0);
 //
-//        atsc3NdkClientNoPhyImpl->atsc3_update_rf_bw_stats(apiImpl.alp_completed_packets_parsed, apiImpl.alp_total_bytes, apiImpl.alp_total_LMTs_recv);
+//        atsc3NdkClientAirwavzRZR->atsc3_update_rf_bw_stats(apiImpl.alp_completed_packets_parsed, apiImpl.alp_total_bytes, apiImpl.alp_total_LMTs_recv);
 
     }
     return 0;
 }
 
 
-void atsc3NdkClientNoPhyImpl::resetProcessThreadStatistics() {
+void atsc3NdkClientAirwavzRZR::resetProcessThreadStatistics() {
     alp_completed_packets_parsed = 0;
     alp_total_bytes = 0;
     alp_total_LMTs_recv = 0;

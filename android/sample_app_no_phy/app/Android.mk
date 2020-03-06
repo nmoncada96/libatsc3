@@ -30,7 +30,7 @@ LIBATSC3CPP := \
 
 LOCAL_SRC_FILES += \
     src/main/jni/atsc3NdkClient.cpp \
-    src/main/jni/atsc3NdkClientNoPhyImpl.cpp \
+    src/main/jni/atsc3NdkClientAirwavzRZR.cpp \
     $(LIBATSC3C:$(LOCAL_PATH)/%=%)  \
     $(LIBATSC3CPP:$(LOCAL_PATH)/%=%)
 

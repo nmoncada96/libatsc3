@@ -4,7 +4,7 @@
 #include <atsc3_phy_mmt_player_bridge.h>
 #include <atsc3_pcap_type.h>
 #include "atsc3NdkClient.h"
-#include "atsc3NdkClientNoPhyImpl.h"
+#include "atsc3NdkClientAirwavzRZR.h"
 
 
 #if DEBUG
@@ -52,7 +52,7 @@ vector<string> Split(const char *str, char delimiter = ' ') {
 }
 
 atsc3NdkClient api;
-atsc3NdkClientNoPhyImpl apiImpl;
+atsc3NdkClientAirwavzRZR apiImpl;
 
 int atsc3NdkClient::Init()
 {
@@ -932,7 +932,7 @@ void atsc3NdkClient::atsc3_lls_sls_alc_on_route_mpd_patched_jni(uint16_t service
 
 void atsc3NdkClient::atsc3_onSlsTablePresent(const char *sls_payload_xml) {
     if (!JReady() || !atsc3_onSlsTablePresent_ID) {
-        eprintf("err: JReady: %d, atsc3_onSlsTablePresent_ID: %d",  JReady(), atsc3_onSlsTablePresent_ID);
+        eprintf("err: JReady: %d, atsc3_onSlsTablePresent_ID: %d",  JReady(), (int)atsc3_onSlsTablePresent_ID);
 
         return;
     }
@@ -1341,9 +1341,9 @@ extern "C"
 JNIEXPORT jint JNICALL
 Java_org_ngbp_libatsc3_sampleapp_atsc3NdkClient_setRfPhyStatisticsViewVisible(JNIEnv *env, jobject thiz, jboolean is_rf_phy_statistics_visible) {
     if(is_rf_phy_statistics_visible) {
-        atsc3NdkClientNoPhyImpl::tunerStatusThreadShouldPollTunerStatus = true;
+        atsc3NdkClientAirwavzRZR::tunerStatusThreadShouldPollTunerStatus = true;
     } else {
-        atsc3NdkClientNoPhyImpl::tunerStatusThreadShouldPollTunerStatus = false;
+        atsc3NdkClientAirwavzRZR::tunerStatusThreadShouldPollTunerStatus = false;
     }
 
     return 0;

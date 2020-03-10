@@ -6,10 +6,12 @@ Airwavz.tv RedZone Receiver to the open source libatsc3 project.
 
 The Airwavz.tv version of this project can be downloaded from GitHub at:
 
-URL URL URL URL URL URL URL URL
+git@github.com:airwavz-tv/libatsc3.git
 
 Please download or clone this github project and follow these steps to build
-and test it on Android.
+and test it on Android. The changes Airwavz.tv RedZone Receiver support
+is part of the airwavz.tv-redzone-receuver branch. Comparing this branch to
+master will show all the changes required to support the device.
 
 To build this project you must first place a copy of the files from the include
 directory of the Airwavz RedZone Receive SDK into the following directory:

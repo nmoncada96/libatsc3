@@ -1,7 +1,8 @@
-# Android.mk for libatsc3 + saankhyalabs
+# Android.mk for libatsc3 + Airwavz RZR
 #
 #
 # jjustman@ngbp.org - for libatsc3 inclusion 2019-09-28
+# support@airwavz.tv - for Airwavz RZR inclusion
 
 # global pathing
 
@@ -30,7 +31,7 @@ LIBATSC3CPP := \
 
 LOCAL_SRC_FILES += \
     src/main/jni/atsc3NdkClient.cpp \
-    src/main/jni/atsc3NdkClientNoPhyImpl.cpp \
+    src/main/jni/atsc3NdkClientAirwavzRZR.cpp \
     $(LIBATSC3C:$(LOCAL_PATH)/%=%)  \
     $(LIBATSC3CPP:$(LOCAL_PATH)/%=%)
 
@@ -55,15 +56,18 @@ LOCAL_SRC_FILES += \
 
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/src/main/jni
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../src/
-
-
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../Airwavz-RZR-SDK/include
 
 LOCAL_CFLAGS += -g -fpack-struct=8 -fPIC  \
                 -D__DISABLE_LIBPCAP__ -D__DISABLE_ISOBMFF_LINKAGE__ -D__DISABLE_NCURSES__ \
                 -D__MOCK_PCAP_REPLAY__ -D__LIBATSC3_ANDROID__
-
-LOCAL_LDLIBS := -ldl -llog -landroid -lz
-
+                
+LOCAL_LDLIBS := -ldl -llog -landroid -lz \
+    -l$(LOCAL_PATH)/src/main/jniLibs/$(TARGET_ARCH_ABI)/libredzone_api.so \
+    -l$(LOCAL_PATH)/src/main/jniLibs/$(TARGET_ARCH_ABI)/libredzone_c_api.so \
+    -l$(LOCAL_PATH)/src/main/jniLibs/$(TARGET_ARCH_ABI)/libRedZoneATSC3Parsers.so \
+    -l$(LOCAL_PATH)/src/main/jniLibs/$(TARGET_ARCH_ABI)/libusb1.0.so
+ 
 include $(BUILD_SHARED_LIBRARY)
 
 # notes: jjustman-2019-11-26

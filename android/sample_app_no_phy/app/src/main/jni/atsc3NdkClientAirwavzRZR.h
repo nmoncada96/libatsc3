@@ -7,12 +7,13 @@
 #include <stdlib.h>
 #include <queue>
 
+#include "props_api.h"
+#include "redzone_c_api.h"
 
 using namespace std;
 
-
-#ifndef LIBATSC3_ATSC3NDKCLIENTNOPHYIMPL_H
-#define LIBATSC3_ATSC3NDKCLIENTNOPHYIMPL_H
+#ifndef LIBATSC3_ATSC3NDKCLIENTAIRWAVZRZR_H
+#define LIBATSC3_ATSC3NDKCLIENTAIRWAVZRZR_H
 
 #include <atsc3_utils.h>
 
@@ -23,7 +24,7 @@ using namespace std;
 
 typedef void * (*THREADFUNCPTR)(void *);
 
-class atsc3NdkClientNoPhyImpl {
+class atsc3NdkClientAirwavzRZR {
     public:
         void Init(atsc3NdkClient* ref_);
 
@@ -33,6 +34,9 @@ class atsc3NdkClientNoPhyImpl {
         int GetTunerStatus();
 
         void processTLVFromCallback();
+
+
+
 
         //thread state management flags, TODO: remove from static to instance binding
         static bool        captureThreadShouldRun;

@@ -23,6 +23,9 @@ bool atsc3NdkClientAirwavzRZR::tunerStatusThreadShouldPollTunerStatus = false;
 
 RedZoneCaptureHandle_t hRedZoneCapture;
 
+RZRBasebandParserHandle_t    atsc3NdkClientAirwavzRZR::hBasebandParser;
+RZRALPParserHandle_t         atsc3NdkClientAirwavzRZR::hALPParser;
+
 atsc3NdkClient* atsc3NdkClientAirwavzRZR::atsc3NdkClient_ref = NULL;
 
 //NDK JNI main dispatcher reference
@@ -56,6 +59,8 @@ int atsc3NdkClientAirwavzRZR::Open(int fd_, int bus_, int addr_) {
     }
 
     RedZoneOperatingMode opmode = OperatingModeATSC3;
+    atsc3RedZoneParserCallbackData.device_mode = opmode;
+
     rval = RedZoneCaptureSetProp(hRedZoneCapture, RedZoneOperatingModeProp, &opmode, sizeof(opmode));
     printf("RedZoneCaptureSetProp: RedZoneOperatingModePropMode returned %d\n", rval);
 
@@ -70,6 +75,9 @@ int atsc3NdkClientAirwavzRZR::Tune(int freqKhz, int plpId) {
 
     return TuneMultiplePLP(freqKhz, myPlps);
 }
+
+
+
 
 /**
  * jjustman-2019-12-17: TODO - refactor this to InitTunerAndDemodTransfer
@@ -139,6 +147,26 @@ int atsc3NdkClientAirwavzRZR::TuneMultiplePLP(int freqKhz, vector<int> plpIds) {
 //        printf("creating capture thread, cb buffer size: %d, tlv_block_size: %d",
 //               CB_SIZE, BUFFER_SIZE);
 
+
+
+        if (RZRALPParserOpen(&hALPParser))  {
+            printf("Failed to register hALPParser");
+            return -2;
+        }
+
+        if (RZRALPParserRegisterNetworkPacketCallbacks(hALPParser, alpParserIPv4Callback, alpParserLLSCallback, &atsc3RedZoneParserCallbackData))
+        {
+            printf("Failed to register ALP processor network packet callbacks");
+            rval = 1;
+            return -1;
+        }
+
+        if(RZRBasebandParserOpen(&hBasebandParser)) {
+            printf("Failed to open hBasebandParser");
+            return -4;
+        }
+
+
         cThread_ret = pthread_create(&cThreadID, NULL, (THREADFUNCPTR) &atsc3NdkClientAirwavzRZR::CaptureThread, NULL);
         printf("created CaptureThread, cThreadID is: %d", (int)cThreadID);
         if (cThread_ret != 0) {
@@ -149,6 +177,68 @@ int atsc3NdkClientAirwavzRZR::TuneMultiplePLP(int freqKhz, vector<int> plpIds) {
     } else {
         printf("using existing CaptureThread");
     }
+
+    if(plpset.plp0_id != 255) {
+        RZRALPParserEnablePLP(hALPParser, plpset.plp0_id);
+        RZRBasebandParserEnablePLP(hBasebandParser, plpset.plp0_id);
+
+    } else {
+        RZRALPParserDisablePLP(hALPParser, plpset.plp0_id);
+        RZRBasebandParserDisablePLP(hBasebandParser, plpset.plp0_id);
+    }
+
+
+    if(plpset.plp1_id != 255) {
+        RZRALPParserEnablePLP(hALPParser, plpset.plp1_id);
+        RZRBasebandParserEnablePLP(hBasebandParser, plpset.plp1_id);
+
+    } else {
+        RZRALPParserDisablePLP(hALPParser, plpset.plp1_id);
+        RZRBasebandParserDisablePLP(hBasebandParser, plpset.plp1_id);
+
+    }
+
+    if(plpset.plp2_id != 255) {
+        RZRALPParserEnablePLP(hALPParser, plpset.plp2_id);
+        RZRBasebandParserEnablePLP(hBasebandParser, plpset.plp2_id);
+
+    } else {
+        RZRALPParserDisablePLP(hALPParser, plpset.plp2_id);
+        RZRBasebandParserDisablePLP(hBasebandParser, plpset.plp2_id);
+
+    }
+
+    if(plpset.plp3_id != 255) {
+        RZRALPParserEnablePLP(hALPParser, plpset.plp3_id);
+        RZRBasebandParserEnablePLP(hBasebandParser, plpset.plp3_id);
+
+    } else {
+        RZRALPParserDisablePLP(hALPParser, plpset.plp3_id);
+        RZRBasebandParserDisablePLP(hBasebandParser, plpset.plp3_id);
+    }
+
+    if(RZRBasebandParserRegisterCallbacks(hBasebandParser, basebandParserALPCallback, &atsc3RedZoneParserCallbackData))
+    {
+        printf("Failed to register vendor packet parser callbacks");
+        return -6;
+    }
+
+    if (RedZoneCaptureRegisterCallbacks(hRedZoneCapture, redZoneCaptureBasebandPacketCallback, &atsc3RedZoneParserCallbackData))
+    {
+        printf("Failed to register callbacks with RedZoneMemoryConsumer\n");
+        return -7;
+    }
+
+    PropUtilsSetOperatingMode(hRedZoneCapture, RedZoneOperatingModeATSC3);
+    PropUtilsSetFrequencyKHz(hRedZoneCapture, freqKhz);
+    PropUtilsSetPLPSet(hRedZoneCapture, plpset.plp0_id, plpset.plp1_id, plpset.plp2_id, plpset.plp3_id);
+
+    if (RedZoneCaptureStart(hRedZoneCapture))
+    {
+        printf("Failed to start RedZoneCapture\n");
+        return -31337;
+    }
+
 
 #if 0
     //create our ProcessThread - handles enqueued TLV payload from CaptureThread
@@ -187,6 +277,84 @@ int atsc3NdkClientAirwavzRZR::TuneMultiplePLP(int freqKhz, vector<int> plpIds) {
 }
 
 
+
+void atsc3NdkClientAirwavzRZR::alpParserIPv4Callback(uint32_t plpId, const uint8_t *pPacket, int32_t sPacket, int32_t SID, void *pUserData)
+{
+    atsc3RedZoneParserCallbackData_t *pParserCallbackData = (atsc3RedZoneParserCallbackData_t *)pUserData;
+    printf("alpParserIPv4Callback: pPacket: %p, packetLen: %d, SID: %d, first 4 bytes 0x%02 0x%02 0x%02 0x%02", pPacket, sPacket, SID, pPacket[0], pPacket[1], pPacket[2], pPacket[3]);
+
+    block_t* ipPayload = block_Duplicate_from_ptr((uint8_t*)pPacket, sPacket);
+    block_Rewind(ipPayload);
+    atsc3_phy_mmt_player_bridge_process_packet_phy(ipPayload);
+
+
+
+    return;
+}
+
+//jjustman-2020-03-11 - avoid splitting LLS from IP flow for libatsc3
+//2020-03-11 01:29:43.101 31733-31795/org.ngbp.libatsc3 D/NDK: alpParserLLSCallback: pPacket: 0xbebfab80, packetLen: 34,  first 4 bytex 0x01ffff
+void atsc3NdkClientAirwavzRZR::alpParserLLSCallback(uint32_t plpId, const uint8_t *pPacket, int32_t sPacket, void *pUserData)
+{
+    printf("alpParserLLSCallback: pPacket: %p, packetLen: %d,  first 4 bytes 0x%02 0x%02 0x%02 0x%02", pPacket, sPacket, pPacket[0], pPacket[1], pPacket[2], pPacket[3]);
+
+    block_t* ipPayload = block_Duplicate_from_ptr((uint8_t*)pPacket, sPacket);
+    block_Rewind(ipPayload);
+    atsc3_phy_mmt_player_bridge_process_packet_phy(ipPayload);
+}
+
+//jjustman-2020-03-11 - handoff to libatsc3 alp parser here on callback invocation
+void atsc3NdkClientAirwavzRZR::basebandParserALPCallback(uint32_t plpId, const uint8_t *pPacket, int32_t sPacket, void *pUserData)
+{
+    atsc3RedZoneParserCallbackData_t *pParserCallbackData = (atsc3RedZoneParserCallbackData_t *)pUserData;
+
+#ifdef __USE_AIRWAVZ_ALP_PARSER__
+    if (hALPParser)
+    {
+        RZRALPParserProcessALPPacket(hALPParser, plpId, pPacket, sPacket);
+    }
+#else
+    //printf("alpParserIPv4Callback: pPacket: %p, packetLen: %d,  first 4 bytes 0x%02 0x%02 0x%02 0x%02", pPacket, sPacket, pPacket[0], pPacket[1], pPacket[2], pPacket[3]);
+
+    block_t* alpPayload = block_Duplicate_from_ptr((uint8_t*)pPacket, sPacket);
+    block_Rewind(alpPayload);
+
+    atsc3_alp_packet_t* atsc3_alp_packet = atsc3_alp_packet_parse(alpPayload);
+    if(atsc3_alp_packet) {
+        //alp_completed_packets_parsed++;
+
+        //alp_total_bytes += atsc3_alp_packet->alp_payload->p_size;
+
+        if(atsc3_alp_packet->alp_packet_header.packet_type == 0x00) {
+
+            block_Rewind(atsc3_alp_packet->alp_payload);
+            atsc3_phy_mmt_player_bridge_process_packet_phy(atsc3_alp_packet->alp_payload);
+
+        } else if(atsc3_alp_packet->alp_packet_header.packet_type == 0x4) {
+            //alp_total_LMTs_recv++;
+            atsc3_alp_packet_extract_lmt(atsc3_alp_packet);
+        }
+
+        atsc3_alp_packet_free(&atsc3_alp_packet);
+    }
+
+    block_Destroy(&alpPayload);
+
+    //printf("alpParserIPv4Callback:: returning");
+
+#endif
+}
+
+void atsc3NdkClientAirwavzRZR::redZoneCaptureBasebandPacketCallback(RedZoneCaptureBasebandPacket *pPacket, void *pUserData)
+{
+    atsc3RedZoneParserCallbackData_t *pParserCallbackData = (atsc3RedZoneParserCallbackData_t *)pUserData;
+
+
+    if (pParserCallbackData->device_mode == RedZoneOperatingModeATSC3)
+    {
+        RZRBasebandParserParsePacket(hBasebandParser, pPacket);
+    }
+}
 
 void atsc3NdkClientAirwavzRZR::processTLVFromCallback()
 {

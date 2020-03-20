@@ -1,4 +1,3 @@
-
 /*
  * atsc3_phy_mmt_player_bridge.cpp
  *

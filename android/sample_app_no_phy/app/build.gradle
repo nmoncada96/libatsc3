@@ -20,9 +20,7 @@ android {
             // Specifies the ABI configurations of your native
             // libraries Gradle should build and package with your APK.
 
-            abiFilters 'armeabi-v7a' //, 'arm64-v8a'
-            //cFlags = "-I../../Android-RZR-SDK/include/"
-            cFlags = "-IC:/Users/john/Source/Repos/jjustman/libatsc3/android/sample_app_no_phy/Android-RZR-SDK/include"
+            abiFilters 'armeabi-v7a' // , 'arm64-v8a'
         }
     }
     buildTypes {

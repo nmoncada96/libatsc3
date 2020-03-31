@@ -11,9 +11,10 @@
 #include "redzone_c_api.h"
 
 #include "basebandparser.h"
-#include "alpparser.h"
 
-#include "utils.h"
+//#include "alpparser.h"
+
+//#include "utils.h"
 
 //#define __USE_AIRWAVZ_ALP_PARSER__
 
@@ -35,8 +36,6 @@ typedef void * (*THREADFUNCPTR)(void *);
 typedef struct atsc3RedZoneParserCallbackData
 {
     enum RedZoneOperatingMode device_mode;
-
-
 } atsc3RedZoneParserCallbackData_t;
 
 class atsc3NdkClientAirwavzRZR {
@@ -51,14 +50,14 @@ class atsc3NdkClientAirwavzRZR {
         void processTLVFromCallback();
 
         //airwavz specific PHY callbacks
-        static void alpParserIPv4Callback(uint32_t plpId, const uint8_t *pPacket, int32_t sPacket, int32_t SID, void *pUserData);
+        //static void alpParserIPv4Callback(uint32_t plpId, const uint8_t *pPacket, int32_t sPacket, int32_t SID, void *pUserData);
         static void basebandParserALPCallback(uint32_t plpId, const uint8_t *pPacket, int32_t sPacket, void *pUserData);
-        static void alpParserLLSCallback(uint32_t plpId, const uint8_t *pPacket, int32_t sPacket, void *pUserData);
+        //static void alpParserLLSCallback(uint32_t plpId, const uint8_t *pPacket, int32_t sPacket, void *pUserData);
         static void redZoneCaptureBasebandPacketCallback(RedZoneCaptureBasebandPacket *pPacket, void *pUserData);
 
 
         atsc3RedZoneParserCallbackData_t    atsc3RedZoneParserCallbackData;
-        static RZRALPParserHandle_t         hALPParser;
+        //static RZRALPParserHandle_t         hALPParser;
         static RZRBasebandParserHandle_t    hBasebandParser;
         //end airwavz specific PHY callbacks
 

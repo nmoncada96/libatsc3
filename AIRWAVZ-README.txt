@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 AIRWAVZ-README 3/9/2020
+=======
+AIRWAVZ-README 3/19/2020
+>>>>>>> 012395d5c513c60e5a0aecaa7d581b226a52c6c2
 
 To demonstrate the correct usage of the Airwavz RedZone Receiver SDK on
 non-rooted Android devices we have added some basic support for the
@@ -51,9 +55,16 @@ The default frequency in the Andoird UI is currently 647MHz.
 
 Once tuned the "RF Stats" button will show the current Lock, RSSi, and SNR.
 
+<<<<<<< HEAD
 We have not completed any further integration with libatsc3 at this time. The
 purpose is just to demonstrate how to use the device in a non-root Andrroid
 enviornment.
+=======
+We are int process of connecting up the Baseband to ALP Parser to feed the rest of
+the libatsc3 stack and this code is in test. Note that NO attempt at closing the
+device and performing a gracefully shut down of the device and SDK.
+
+>>>>>>> 012395d5c513c60e5a0aecaa7d581b226a52c6c2
 
 
 

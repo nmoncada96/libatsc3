@@ -932,7 +932,7 @@ void atsc3NdkClient::atsc3_lls_sls_alc_on_route_mpd_patched_jni(uint16_t service
 
 void atsc3NdkClient::atsc3_onSlsTablePresent(const char *sls_payload_xml) {
     if (!JReady() || !atsc3_onSlsTablePresent_ID) {
-        eprintf("err: JReady: %d, atsc3_onSlsTablePresent_ID: %d",  JReady(), atsc3_onSlsTablePresent_ID);
+        eprintf("err: JReady: %d, atsc3_onSlsTablePresent_ID: %d",  JReady(), (int)atsc3_onSlsTablePresent_ID);
 
         return;
     }

@@ -215,6 +215,7 @@ int atsc3NdkClientAirwavzRZR::TuneMultiplePLP(int freqKhz, vector<int> plpIds) {
 
     atsc3NdkClientAirwavzRZR::atsc3NdkClient_ref->LogMsgF("TuneMultiplePLP: completed: capture: %ul, process: %ul, tunerStatus: %ul", cThreadID, pThreadID, tsThreadID);
 
+
     return 0;
 }
 
@@ -222,6 +223,11 @@ int atsc3NdkClientAirwavzRZR::TuneMultiplePLP(int freqKhz, vector<int> plpIds) {
 void atsc3NdkClientAirwavzRZR::basebandParserALPCallback(uint32_t plpId, const uint8_t *pPacket, int32_t sPacket, void *pUserData)
 {
     atsc3RedZoneParserCallbackData_t *pParserCallbackData = (atsc3RedZoneParserCallbackData_t *)pUserData;
+
+    if(!atsc3NdkClientAirwavzRZR::atsc3NdkClient_ref->atsc3_jni_rx_thread_env) {
+        //jjustman-2020-04-21 - hack
+        atsc3NdkClientAirwavzRZR::atsc3NdkClient_ref->pinFromRxProcessingThread();
+    }
 
     //printf("alpParserIPv4Callback: pPacket: %p, packetLen: %d,  first 4 bytes 0x%02 0x%02 0x%02 0x%02", pPacket, sPacket, pPacket[0], pPacket[1], pPacket[2], pPacket[3]);
 

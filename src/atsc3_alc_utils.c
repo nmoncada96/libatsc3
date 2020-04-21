@@ -293,90 +293,94 @@ char* alc_packet_dump_to_object_get_s_tsid_filename(udp_flow_t* udp_flow, alc_pa
 					if(atsc3_route_s_tsid_RS_LS->tsi == alc_packet->def_lct_hdr->tsi && atsc3_route_s_tsid_RS_LS->atsc3_route_s_tsid_RS_LS_SrcFlow) {
 					    //Assume SrcFlow_Payload.format_id == 1 for file mode:
 
-					    if(atsc3_route_s_tsid_RS_LS->atsc3_route_s_tsid_RS_LS_SrcFlow->atsc3_route_s_tsid_RS_LS_SrcFlow_Payload->format_id != 2) {
-                            //try to find our matching toi and content-location value
-                            if(atsc3_route_s_tsid_RS_LS->atsc3_route_s_tsid_RS_LS_SrcFlow->atsc3_fdt_instance && atsc3_route_s_tsid_RS_LS->atsc3_route_s_tsid_RS_LS_SrcFlow->atsc3_fdt_instance->atsc3_fdt_file_v.count) {
-                                atsc3_fdt_instance_t* atsc3_fdt_instance = atsc3_route_s_tsid_RS_LS->atsc3_route_s_tsid_RS_LS_SrcFlow->atsc3_fdt_instance;
-                                for(int k=0; k < atsc3_fdt_instance->atsc3_fdt_file_v.count; k++) {
-                                    atsc3_fdt_file_t* atsc3_fdt_file = atsc3_fdt_instance->atsc3_fdt_file_v.data[k];
+					    if(atsc3_route_s_tsid_RS_LS->atsc3_route_s_tsid_RS_LS_SrcFlow->atsc3_route_s_tsid_RS_LS_SrcFlow_Payload) {
+                            if(atsc3_route_s_tsid_RS_LS->atsc3_route_s_tsid_RS_LS_SrcFlow->atsc3_route_s_tsid_RS_LS_SrcFlow_Payload->format_id != 2) {
+                                //try to find our matching toi and content-location value
+                                if(atsc3_route_s_tsid_RS_LS->atsc3_route_s_tsid_RS_LS_SrcFlow->atsc3_fdt_instance && atsc3_route_s_tsid_RS_LS->atsc3_route_s_tsid_RS_LS_SrcFlow->atsc3_fdt_instance->atsc3_fdt_file_v.count) {
+                                    atsc3_fdt_instance_t* atsc3_fdt_instance = atsc3_route_s_tsid_RS_LS->atsc3_route_s_tsid_RS_LS_SrcFlow->atsc3_fdt_instance;
+                                    for(int k=0; k < atsc3_fdt_instance->atsc3_fdt_file_v.count; k++) {
+                                        atsc3_fdt_file_t* atsc3_fdt_file = atsc3_fdt_instance->atsc3_fdt_file_v.data[k];
 
-                                    //if not in entity mode, and toi matches, then use this mapping, otherwise, fallback to file_template
-                                    if(atsc3_fdt_file->toi == alc_packet->def_lct_hdr->toi && atsc3_fdt_file->content_location && strlen(atsc3_fdt_file->content_location)) {
-                                        size_t content_location_length = strlen(atsc3_fdt_file->content_location);
-                                        content_location = calloc(content_location_length + 1, sizeof(char));
-                                        strncpy(content_location, atsc3_fdt_file->content_location, content_location_length);
+                                        //if not in entity mode, and toi matches, then use this mapping, otherwise, fallback to file_template
+                                        if(atsc3_fdt_file->toi == alc_packet->def_lct_hdr->toi && atsc3_fdt_file->content_location && strlen(atsc3_fdt_file->content_location)) {
+                                            size_t content_location_length = strlen(atsc3_fdt_file->content_location);
+                                            content_location = calloc(content_location_length + 1, sizeof(char));
+                                            strncpy(content_location, atsc3_fdt_file->content_location, content_location_length);
 
-                                        //TODO: jjustman-2019-09-18 -  apply mappings from FLUTE to HTTP object caching here
-    //                                    atsc3_fdt_file->content_type;
-    //                                    atsc3_fdt_file->content_length;
-    //                                    atsc3_fdt_file->content_encoding;
-    //                                    atsc3_fdt_file->transfer_length;
+                                            //TODO: jjustman-2019-09-18 -  apply mappings from FLUTE to HTTP object caching here
+        //                                    atsc3_fdt_file->content_type;
+        //                                    atsc3_fdt_file->content_length;
+        //                                    atsc3_fdt_file->content_encoding;
+        //                                    atsc3_fdt_file->transfer_length;
 
+                                        }
                                     }
-                                }
 
-                                if(!content_location) {
-                                    //fallback to instance template
-                                    if(atsc3_fdt_instance->file_template) {
-                                        int file_template_strlen = strlen(atsc3_fdt_instance->file_template);
-                                        char intermediate_file_name[1025] = { 0 }; //include null padding
-                                        int intermediate_pos = 0;
-                                        char* final_file_name = calloc(1025, sizeof(char));
+                                    if(!content_location) {
+                                        //fallback to instance template
+                                        if(atsc3_fdt_instance->file_template) {
+                                            int file_template_strlen = strlen(atsc3_fdt_instance->file_template);
+                                            char intermediate_file_name[1025] = { 0 }; //include null padding
+                                            int intermediate_pos = 0;
+                                            char* final_file_name = calloc(1025, sizeof(char));
 
-                                        //replace $$ to $
-                                        //replace $TOI$ (and width formatting, e.g. $TOI%05d$) with our TOI
-                                        for(int i=0; i < file_template_strlen && i < 1024; i++) {
-                                            if(atsc3_fdt_instance->file_template[i] == '$') {
-                                                if(atsc3_fdt_instance->file_template[i+1] == '$') {
-                                                    //escape
-                                                    intermediate_file_name[intermediate_pos++] = '$';
-                                                    i++;
-                                                } else if(i+4 < file_template_strlen &&
-                                                          atsc3_fdt_instance->file_template[i+1] == 'T' &&
-                                                          atsc3_fdt_instance->file_template[i+2] == 'O' &&
-                                                          atsc3_fdt_instance->file_template[i+3] == 'I') { //next 3 chars should be TOI at least
-                                                    if(atsc3_fdt_instance->file_template[i+4] == '$') {
-                                                        //close out with just a %d value
-                                                        intermediate_file_name[intermediate_pos++] = '%';
-                                                        intermediate_file_name[intermediate_pos++] = 'd';
-                                                        i += 4;
-                                                        __ALC_UTILS_DEBUG("intermediate file template name after TOI property substituion is: %s", intermediate_file_name);
+                                            //replace $$ to $
+                                            //replace $TOI$ (and width formatting, e.g. $TOI%05d$) with our TOI
+                                            for(int i=0; i < file_template_strlen && i < 1024; i++) {
+                                                if(atsc3_fdt_instance->file_template[i] == '$') {
+                                                    if(atsc3_fdt_instance->file_template[i+1] == '$') {
+                                                        //escape
+                                                        intermediate_file_name[intermediate_pos++] = '$';
+                                                        i++;
+                                                    } else if(i+4 < file_template_strlen &&
+                                                              atsc3_fdt_instance->file_template[i+1] == 'T' &&
+                                                              atsc3_fdt_instance->file_template[i+2] == 'O' &&
+                                                              atsc3_fdt_instance->file_template[i+3] == 'I') { //next 3 chars should be TOI at least
+                                                        if(atsc3_fdt_instance->file_template[i+4] == '$') {
+                                                            //close out with just a %d value
+                                                            intermediate_file_name[intermediate_pos++] = '%';
+                                                            intermediate_file_name[intermediate_pos++] = 'd';
+                                                            i += 4;
+                                                            __ALC_UTILS_DEBUG("intermediate file template name after TOI property substituion is: %s", intermediate_file_name);
 
-                                                    } else if(atsc3_fdt_instance->file_template[i+4] == '%') {
-                                                        i += 4;
-                                                        //copy over our formatting until we get to a $
-                                                        //e.g. myVideo$TOI%05d$.mps
-                                                        while(i < file_template_strlen && atsc3_fdt_instance->file_template[i] != '$') {
-                                                            intermediate_file_name[intermediate_pos++] = atsc3_fdt_instance->file_template[i++];
+                                                        } else if(atsc3_fdt_instance->file_template[i+4] == '%') {
+                                                            i += 4;
+                                                            //copy over our formatting until we get to a $
+                                                            //e.g. myVideo$TOI%05d$.mps
+                                                            while(i < file_template_strlen && atsc3_fdt_instance->file_template[i] != '$') {
+                                                                intermediate_file_name[intermediate_pos++] = atsc3_fdt_instance->file_template[i++];
+                                                            }
+                                                            __ALC_UTILS_DEBUG("intermediate file template name after TOI width substitution is: %s", intermediate_file_name);
+
+                                                        } else {
+                                                            __ALC_UTILS_WARN("file template name at pos: %d doesn't match template value of TOI: %s, ignoring...", i, atsc3_fdt_instance->file_template);
                                                         }
-                                                        __ALC_UTILS_DEBUG("intermediate file template name after TOI width substitution is: %s", intermediate_file_name);
-
                                                     } else {
                                                         __ALC_UTILS_WARN("file template name at pos: %d doesn't match template value of TOI: %s, ignoring...", i, atsc3_fdt_instance->file_template);
                                                     }
                                                 } else {
-                                                    __ALC_UTILS_WARN("file template name at pos: %d doesn't match template value of TOI: %s, ignoring...", i, atsc3_fdt_instance->file_template);
+                                                    intermediate_file_name[intermediate_pos++] = atsc3_fdt_instance->file_template[i];
                                                 }
-                                            } else {
-                                                intermediate_file_name[intermediate_pos++] = atsc3_fdt_instance->file_template[i];
                                             }
-                                        }
 
-                                        //perform final replacement
-                                        snprintf(final_file_name, 1024, intermediate_file_name, alc_packet->def_lct_hdr->toi);
-                                        content_location = final_file_name;
-                                        __ALC_UTILS_DEBUG("final file template name after TOI substitution is: %s", content_location);
-                                        if(alc_packet->def_lct_hdr->tsi == lls_sls_alc_monitor->audio_tsi) {
-                                           lls_sls_alc_monitor->last_closed_audio_toi = alc_packet->def_lct_hdr->toi;
-                                        } else if(alc_packet->def_lct_hdr->tsi == lls_sls_alc_monitor->video_tsi) {
-                                           lls_sls_alc_monitor->last_closed_video_toi = alc_packet->def_lct_hdr->toi;
-                                        } else if(alc_packet->def_lct_hdr->tsi == lls_sls_alc_monitor->text_tsi) {
-                                            lls_sls_alc_monitor->last_closed_text_toi = alc_packet->def_lct_hdr->toi;
+                                            //perform final replacement
+                                            snprintf(final_file_name, 1024, intermediate_file_name, alc_packet->def_lct_hdr->toi);
+                                            content_location = final_file_name;
+                                            __ALC_UTILS_DEBUG("final file template name after TOI substitution is: %s", content_location);
+                                            if(alc_packet->def_lct_hdr->tsi == lls_sls_alc_monitor->audio_tsi) {
+                                               lls_sls_alc_monitor->last_closed_audio_toi = alc_packet->def_lct_hdr->toi;
+                                            } else if(alc_packet->def_lct_hdr->tsi == lls_sls_alc_monitor->video_tsi) {
+                                               lls_sls_alc_monitor->last_closed_video_toi = alc_packet->def_lct_hdr->toi;
+                                            } else if(alc_packet->def_lct_hdr->tsi == lls_sls_alc_monitor->text_tsi) {
+                                                lls_sls_alc_monitor->last_closed_text_toi = alc_packet->def_lct_hdr->toi;
+                                            }
                                         }
                                     }
                                 }
                             }
-					    }
+                        } else {
+                            __ALC_UTILS_WARN("atsc3_route_s_tsid_RS_LS->atsc3_route_s_tsid_RS_LS_SrcFlow->atsc3_route_s_tsid_RS_LS_SrcFlow_Payload is NULL, from tsi: %d, toi: %d", alc_packet->def_lct_hdr->tsi, alc_packet->def_lct_hdr->toi);
+                        }
 
 						if(!content_location) {
                             //alternative strategies for content-location here?

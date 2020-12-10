@@ -45,14 +45,14 @@
 # jjustman-2020-11-30 - all modules below here are not available for 3rd party re-distribution
 [submodule "saankhyalabs-slsdk"]
 	path = saankhyalabs-slsdk
-	url = https://gtihub.com/jjustman/NGWP/Mark%20One%20Phone/_git/saankhyalabs-slsdk
+	url = https://github.com/jjustman/Mark%20One%20Phone/_git/saankhyalabs-slsdk
 	branch = slsdk-0.10-borqs
 [submodule "libdaa"]
 	path = libdaa
-	url = https://gtihub.com/jjustman/NGWP/Middleware/_git/libdaa
+	url = https://github.com/jjustman/Middleware/_git/libdaa
 [submodule "codornicesrq"]
 	path = codornicesrq
-	url = https://gtihub.com/jjustman/NGWP/Middleware/_git/codornicesrq
+	url = https://github.com/jjustman/Middleware/_git/codornicesrq
 [submodule "airwavz_redzone_sdk"]
 	path = airwavz_redzone_sdk
-	url = https://gtihub.com/jjustman/NGWP/Middleware/_git/airwavz_redzone_sdk
+	url = https://github.com/jjustman/Middleware/_git/airwavz_redzone_sdk
